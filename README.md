@@ -14,7 +14,7 @@ UDP Protocol:
   * is transmitted every 10 seconds
   * Remote IP/Port is remembered and all packets from that IP/Port gets assigned that user.
 * Data packets
-  * 8 bytes (int64), milliseconds since 1970 for this packet. Each packet SHOULD have a 100 higher number than the previous sent packet.
+  * 8 bytes (int64), microseconds since 1970 for this packet. All packets in one stream MUST be on the same multiple of 100.000 microseconds. Preferably with the last 5 digits zero.
   * Current data:
     * 2 bytes speed (uint16) in km/h * 100
     * 2 bytes heading (uint16) degrees * 100
