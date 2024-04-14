@@ -24,7 +24,7 @@ The protocol contains two types of packets, authentication packets and data pack
   * Current data for vehicle:
     * 2 bytes, uint16, speed in km/h * 100
     * 2 bytes, uint16, heading in degrees * 100
-    * 16 bytes * 2, contains brake temperature for 16 locations on brake disc, uint16, 0.1 C per bit, -100 C offset.
+    * 2 bytes * 16, contains brake temperature for 16 locations on brake disc, uint16, 0.1 C per bit, -100 C offset.
   * Repeated 40 times, positional data (100 ms time difference for each data entry), first elements are the most current data
     * 4 bytes, single precision float, LAT
     * 4 bytes, single precision float, LONG
