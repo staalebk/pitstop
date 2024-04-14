@@ -13,11 +13,13 @@ UDP Protocol:
 The protocol contains two types of packets, authentication packets and data packets.
 
 * Authentication packets
+  * One byte to signify it is an authentication packet: 0xFF
   * Contains the 128 bit unique id (UUID) and nothing else
   * is transmitted every 10 seconds
   * Remote IP/Port is remembered and all packets from that IP/Port gets assigned that user.
 
 * Data packets
+  * One byte to tell which protocol version is in use: 0x00 for v0
   * 8 bytes (int64), microseconds since 1970 for this packet. All packets in one stream MUST be on the same multiple of 100.000 microseconds. Preferably with the last 5 digits zero.
   * Current data for vehicle:
     * 2 bytes, uint16, speed in km/h * 100
