@@ -19,6 +19,7 @@ uint16_t udpRemotePort;
 WiFiUDP udp;
 
 DataPacket current;
+DataPacket datapacket;
 
 
 void setLat(uint32_t ilat) {
@@ -34,6 +35,8 @@ void setLon(uint32_t ilon) {
 }
 
 void setRPM(uint32_t rpm) {
+    if(rpm == 0xFFFF)
+        rpm = 0;
     current.positions->rpm = rpm;
 }
 
@@ -92,28 +95,27 @@ void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort, 
     udpRemotePort = remotePort;
     udpLocalPort = localPort;
     memcpy(uuid, authpacket.uuid,16);
-    timer1.attach(1, sendData);  // 0.1 seconds is 100 milliseconds
-    timer2.attach(10, sendAuth);  // 0.1 seconds is 100 milliseconds
+    timer1.attach(0.1, sendData);  // 0.1 seconds is 100 milliseconds
+    timer2.attach(10, sendAuth);
 }
 
 void sendData(){
-    DataPacket dp;
-    dp.protocolVersion = 0x00;
-    dp.timestamp = (getCurrentTimeMicros() / 100000) * 100000;
-    dp.vehicleData.speed = current.vehicleData.speed;
-    dp.vehicleData.heading = current.vehicleData.heading;
-    for(int i = 1; i<POS_PER_PACKET; i++) {
-        dp.positions[i-1].rpm = dp.positions[i].rpm;
-        dp.positions[i-1].latitude = dp.positions[i].latitude;
-        dp.positions[i-1].longitude = dp.positions[i].longitude;
+    datapacket.protocolVersion = 0x00;
+    datapacket.timestamp = (getCurrentTimeMicros() / 100000) * 100000;
+    datapacket.vehicleData.speed = current.vehicleData.speed;
+    datapacket.vehicleData.heading = current.vehicleData.heading;
+    for(int i = POS_PER_PACKET-1; i>0; i--) {
+        datapacket.positions[i].rpm = datapacket.positions[i-1].rpm;
+        datapacket.positions[i].latitude = datapacket.positions[i-1].latitude;
+        datapacket.positions[i].longitude = datapacket.positions[i-1].longitude;
     }
-    dp.positions->rpm = current.positions->rpm;
-    dp.positions->latitude = current.positions->latitude;
-    dp.positions->longitude = current.positions->longitude;
+    datapacket.positions[0].rpm = current.positions->rpm;
+    datapacket.positions[0].latitude = current.positions->latitude;
+    datapacket.positions[0].longitude = current.positions->longitude;
     udp.beginPacket(udpEndpointIP, udpRemotePort);
-    udp.write((uint8_t *) &dp, sizeof(DataPacket));
+    udp.write((uint8_t *) &datapacket, sizeof(DataPacket));
     udp.endPacket();
-
+}
 
 void sendAuth(){
     udp.beginPacket(udpEndpointIP, udpRemotePort);
