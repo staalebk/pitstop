@@ -4,6 +4,7 @@
 #include <time.h>
 #include "pitstop.h"
 #include "configmanager.h"
+#include "ble.h"
 
 
 const char* ntpServer = "pool.ntp.org";
@@ -17,6 +18,7 @@ const char * udpAddress = "85.166.206.94";  // IP address for UDP (could be a br
 uint16_t udpPort = 5005;  // Port for UDP data
 
 String jsonUrl = "http://yourjsonurl.com/data.json";  // URL to fetch JSON data
+uint8_t uuid[16];
 
 void setup() {
   sleep(3);
@@ -30,7 +32,14 @@ void setup() {
   Serial.println("Connected to Wi-Fi");
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   
-  setupPitstop(udpAddress, udpPort, localUdpPort);
+  setupPitstop(udpAddress, udpPort, localUdpPort, uuid);
+  setupRCBle(uuid);
+  
+  registerCallback(DATA_LAT,setLat);
+  registerCallback(DATA_LON,setLon);
+  registerCallback(DATA_SPEED,setSpeed);
+  registerCallback(DATA_RPM,setRPM);
+  registerCallback(DATA_HEADING,setHeading);
 }
 
 void fetchAndProcessJson() {
@@ -63,6 +72,7 @@ void loop() {
   Serial.println("UDP packet sent based on JSON data");
 
  */
-  sendAuth();
-  delay(10000); // Wait for 10 seconds before the next loop iteration
+  //sendAuth();
+  pollRCBle();
+  delay(1000); // Wait for 10 seconds before the next loop iteration
 }

@@ -5,7 +5,8 @@
 
 #include "pitstop.h"
 
-Ticker timer;
+Ticker timer1;
+Ticker timer2;
 Preferences preferences;
 const char *nvsNamespace = "storage";
 const char *uuidKey = "deviceUUID";
@@ -16,6 +17,33 @@ uint16_t udpLocalPort;
 uint16_t udpRemotePort;
 
 WiFiUDP udp;
+
+DataPacket current;
+
+
+void setLat(uint32_t ilat) {
+    if(ilat == 0x7FFFFFFF)
+        ilat = 0;
+    current.positions->latitude = ilat/POS_DIVIDER;
+}
+
+void setLon(uint32_t ilon) {
+    if(ilon == 0x7FFFFFFF)
+        ilon = 0;
+    current.positions->longitude = ilon/POS_DIVIDER;
+}
+
+void setRPM(uint32_t rpm) {
+    current.positions->rpm = rpm;
+}
+
+void setSpeed(uint32_t speed) {
+    current.vehicleData.speed = speed;
+}
+
+void setHeading(uint32_t heading) {
+    current.vehicleData.heading = heading;
+}
 
 int64_t getCurrentTimeMicros() {
   struct timeval tv; // Structure to hold the time in seconds and microseconds since the Epoch
@@ -56,39 +84,39 @@ void ensureUUID() {
     preferences.end(); // Close the NVS
 }
 
-void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort)
+void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort, uint8_t *uuid)
 {
     ensureUUID();
     udp.begin(localPort);
     udpEndpointIP = address; 
     udpRemotePort = remotePort;
     udpLocalPort = localPort;
-    timer.attach(0.1, sendData);  // 0.1 seconds is 100 milliseconds
-    //timer.attach(10, sendAuth);  // 0.1 seconds is 100 milliseconds
+    memcpy(uuid, authpacket.uuid,16);
+    timer1.attach(1, sendData);  // 0.1 seconds is 100 milliseconds
+    timer2.attach(10, sendAuth);  // 0.1 seconds is 100 milliseconds
 }
 
 void sendData(){
-    Serial.print("p");
     DataPacket dp;
     dp.protocolVersion = 0x00;
     dp.timestamp = (getCurrentTimeMicros() / 100000) * 100000;
-    dp.vehicleData.speed = 100;
-    dp.vehicleData.heading = 1337;
-    for(int i = 0; i<POS_PER_PACKET; i++) {
-        dp.positions[i].rpm = i*10;
-        dp.positions[i].latitude = i*10;
-        dp.positions[i].longitude = i*10;
+    dp.vehicleData.speed = current.vehicleData.speed;
+    dp.vehicleData.heading = current.vehicleData.heading;
+    for(int i = 1; i<POS_PER_PACKET; i++) {
+        dp.positions[i-1].rpm = dp.positions[i].rpm;
+        dp.positions[i-1].latitude = dp.positions[i].latitude;
+        dp.positions[i-1].longitude = dp.positions[i].longitude;
     }
+    dp.positions->rpm = current.positions->rpm;
+    dp.positions->latitude = current.positions->latitude;
+    dp.positions->longitude = current.positions->longitude;
     udp.beginPacket(udpEndpointIP, udpRemotePort);
     udp.write((uint8_t *) &dp, sizeof(DataPacket));
     udp.endPacket();
-    Serial.print("s");
-}
 
 
 void sendAuth(){
     udp.beginPacket(udpEndpointIP, udpRemotePort);
     udp.write((uint8_t *) &authpacket, sizeof(AuthenticationPacket));
     udp.endPacket();
-    Serial.println("Authentication packet sent!");
 }

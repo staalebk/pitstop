@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#define POS_DIVIDER 6000000.0
 
 #define POS_PER_PACKET 40
 typedef struct __attribute__((packed)) {
@@ -27,6 +28,13 @@ typedef struct __attribute__((packed)) {
 } DataPacket;
 
 
-void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort);
+// callbacks
+void setLat(uint32_t);
+void setLon(uint32_t);
+void setRPM(uint32_t);
+void setSpeed(uint32_t);
+void setHeading(uint32_t);
+
+void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort, uint8_t *uuid);
 void sendData();
 void sendAuth();
