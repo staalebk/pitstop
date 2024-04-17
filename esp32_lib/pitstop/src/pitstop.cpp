@@ -23,15 +23,11 @@ DataPacket datapacket;
 
 
 void setLat(uint32_t ilat) {
-    if(ilat == 0x7FFFFFFF)
-        ilat = 0;
-    current.positions->latitude = ilat/POS_DIVIDER;
+    current.positions->latitude = ilat;
 }
 
 void setLon(uint32_t ilon) {
-    if(ilon == 0x7FFFFFFF)
-        ilon = 0;
-    current.positions->longitude = ilon/POS_DIVIDER;
+    current.positions->longitude = ilon;
 }
 
 void setRPM(uint32_t rpm) {

@@ -15,8 +15,8 @@ typedef struct __attribute__((packed)) {
 } CurrentVehicleData;
 
 typedef struct __attribute__((packed)) {
-    float latitude;                       // Latitude
-    float longitude;                      // Longitude
+    uint32_t latitude;                    // Latitude
+    uint32_t longitude;                   // Longitude
     uint16_t rpm;                         // RPM
 } PositionalData;
 
