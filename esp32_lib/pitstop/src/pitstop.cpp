@@ -115,7 +115,10 @@ void sendData(){
     datapacket.positions[0].longitude = current.positions->longitude;
     udp.beginPacket(udpEndpointIP, udpRemotePort);
     udp.write((uint8_t *) &datapacket, sizeof(DataPacket));
-    udp.endPacket();
+    if(!udp.endPacket()){
+        Serial.println("Error transmitting packet. Restarting!");
+        ESP.restart();
+    }
 }
 
 void sendAuth(){
