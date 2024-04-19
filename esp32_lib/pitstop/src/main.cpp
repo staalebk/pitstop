@@ -14,7 +14,7 @@ const int   daylightOffset_sec = 0; // Adjust according to your daylight saving 
 
 
 uint16_t localUdpPort = 1337;  // Local port to listen on
-const char * udpAddress = "85.166.206.94";  // IP address for UDP (could be a broadcast address)
+const char * udpAddress = "pitstop.driftfun.no";  // IP address for UDP (could be a broadcast address)
 uint16_t udpPort = 5005;  // Port for UDP data
 
 String jsonUrl = "http://yourjsonurl.com/data.json";  // URL to fetch JSON data
