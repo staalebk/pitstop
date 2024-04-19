@@ -25,7 +25,7 @@ The protocol contains two types of packets, authentication packets and data pack
     * 2 bytes, uint16, speed in km/h * 100
     * 2 bytes, uint16, heading in degrees * 100
     * 2 bytes * 16, contains brake temperature for 16 locations on brake disc, uint16, 0.1 C per bit, -100 C offset.
-    * 4 bytes, heart rate of driver. unknown format, which is why it is 4 bytes. will be changed.
+    * 1 bytes, heart rate of driver.
   * Repeated 40 times, positional data (100 ms time difference for each data entry), first elements are the most current data
     * 4 bytes, uint32_t, LAT * 6000000.0
     * 4 bytes, uint32_t, LONG * 6000000.0
