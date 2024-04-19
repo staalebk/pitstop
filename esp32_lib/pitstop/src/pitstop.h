@@ -11,6 +11,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     uint16_t speed;                       // Speed in km/h * 100
     uint16_t heading;                     // Heading in degrees * 100
+    uint8_t heart_rate;                  // heart_rate
     uint16_t brakeTemp[16];               // Brake temperatures for 16 locations
 } CurrentVehicleData;
 
@@ -34,6 +35,7 @@ void setLon(uint32_t);
 void setRPM(uint32_t);
 void setSpeed(uint32_t);
 void setHeading(uint32_t);
+void setHeartrate(uint32_t);
 
 void setupPitstop(const char *address, uint16_t remotePort, uint16_t localPort, uint8_t *uuid);
 void sendData();

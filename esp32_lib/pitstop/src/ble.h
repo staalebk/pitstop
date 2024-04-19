@@ -23,6 +23,7 @@
 #define DATA_RPM 4
 #define DATA_HEADING 5
 #define DATA_TIMESTAMP 6
+#define DATA_HRM 7
 
 typedef void (*CallbackType)(uint32_t);      // Function pointer type for callbacks
 

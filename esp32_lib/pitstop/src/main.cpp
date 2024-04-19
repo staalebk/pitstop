@@ -40,6 +40,7 @@ void setup() {
   registerCallback(DATA_SPEED,setSpeed);
   registerCallback(DATA_RPM,setRPM);
   registerCallback(DATA_HEADING,setHeading);
+  registerCallback(DATA_HRM,setHeartrate);
 }
 
 void fetchAndProcessJson() {

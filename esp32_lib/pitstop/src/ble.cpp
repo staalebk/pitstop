@@ -260,6 +260,8 @@ void pollRCBle() {
             sendConfigCommand(CMD_TYPE_ADD, 5, "channel(device(gps), bearing)");
         if(!subscribeSuccess[6])
             sendConfigCommand(CMD_TYPE_ADD, 6, "channel(device(gps), timestamp)");
+        if(!subscribeSuccess[7])
+            sendConfigCommand(CMD_TYPE_ADD, 7, "channel(device(hrm), heart_rate)");
         //deviceConfigured = true;
     }
 }

@@ -44,6 +44,11 @@ void setHeading(uint32_t heading) {
     current.vehicleData.heading = heading;
 }
 
+void setHeartrate(uint32_t heart_rate) {
+    current.vehicleData.heart_rate = heart_rate;
+    Serial.println(heart_rate);
+}
+
 int64_t getCurrentTimeMicros() {
   struct timeval tv; // Structure to hold the time in seconds and microseconds since the Epoch
   gettimeofday(&tv, NULL);
