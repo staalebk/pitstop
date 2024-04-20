@@ -1,10 +1,9 @@
 import { Alert, Tooltip } from "@mantine/core";
-import { clamp, upperFirst } from "@mantine/hooks";
+import { clamp } from "@mantine/hooks";
 import { SixteenNumberArray } from "../commonTypes.ts";
 
 type BrakeDisplayProps = {
   brakeTemp: SixteenNumberArray;
-  label: string;
 };
 
 // Function to map temperature to a color
@@ -20,11 +19,11 @@ const getTempColor = (temp: number) => {
  * Displays brake temperature for a wheel. Temperature rendered so the first temperature in array is the innermost
  * circle, and the last temperature in the array is the outermost circle.
  */
-const BrakeDisplay = ({ brakeTemp, label }: BrakeDisplayProps) => {
+const BrakeDisplay = ({ brakeTemp }: BrakeDisplayProps) => {
   if (brakeTemp == null || brakeTemp.length !== 16) {
     return (
       <Alert w={200} h={200}>
-        Waiting for brake data for {label} wheel
+        Waiting for brake data
       </Alert>
     );
   }
@@ -33,7 +32,7 @@ const BrakeDisplay = ({ brakeTemp, label }: BrakeDisplayProps) => {
 
   return (
     <div>
-      <div>{upperFirst(label)} brake temperature</div>
+      <div>Brake temperature</div>
       <svg width="200" height="200">
         <Tooltip.Group openDelay={500} closeDelay={100}>
           {brakeTemp

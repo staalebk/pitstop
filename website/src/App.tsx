@@ -41,7 +41,8 @@ const App = () => {
             <Grid justify="space-between">
               <Grid.Col span="content">
                 <Text ms={10} mt={15}>
-                  {time && `Last update: ${time}`}
+                  {time &&
+                    `Last update: ${new Date(time).toLocaleTimeString("no-NO")}`}
                 </Text>
               </Grid.Col>
               <Grid.Col span="content">

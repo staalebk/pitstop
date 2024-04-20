@@ -9,9 +9,10 @@ export type CarStateType = {
   id: string;
   timestamp: number;
   speed: number;
+  heartrate: number;
   heading: number;
-  brake_temp_left: SixteenNumberArray;
-  brake_temp_right: SixteenNumberArray;
+  brake_temp: SixteenNumberArray;
+  rpm: number;
   position: [number, number];
 };
 
