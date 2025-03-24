@@ -28,7 +28,9 @@ The protocol contains two types of packets, authentication packets and data pack
     * 1 byte, uint8 heart rate of driver.
     * 1 byte, uint8 coolant temperature in celsius.
     * 1 byte, uint8 engine oil temperature in celsius.
-    * 1 byte, uint8 accelerator % in degrees.
+    * 1 byte, uint8 accelerator %.
+    * 1 byte, uint8 clutch %.
+    * 1 byte, uint8 brake %.
   * Repeated 40 times, positional data (100 ms time difference for each data entry), first elements are the most current data
     * 4 bytes, uint32_t, LAT * 6000000.0
     * 4 bytes, uint32_t, LONG * 6000000.0
