@@ -42,6 +42,9 @@ const loadMaps = async (mapContainer: HTMLElement) => {
     title: "Car",
   });
 
+  markerObject.style.transitionProperty = "top, left";
+  markerObject.style.transitionDuration = "0.1s";
+
   return { mapObject, markerObject };
 };
 
@@ -95,7 +98,7 @@ const MapDisplay = ({ lat, lng, heading }: MapDisplayProps) => {
         </Alert>
       </div>
       <Text size="sm">
-        Coordinates: {lat}, {lng}
+        Coordinates: {lat.toFixed(8)}, {lng.toFixed(8)}
       </Text>
       <Slider
         color="blue"

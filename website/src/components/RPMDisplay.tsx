@@ -12,11 +12,11 @@ const RPMDisplay = ({ rpm }: { rpm: number }) => {
   return (
     <div>
       <Text>RPM</Text>
-      <Speedometer value={rpm} max={6800} width={200}>
+      <Speedometer value={rpm} max={7000} width={200}>
         <Background />
         <Arc />
         <Needle />
-        <DangerPath from={6000} to={6800} />
+        <DangerPath angle={32} />
         <Marks step={500} fontSize={15} />
         <Indicator color="white">
           {(value, textProps) => (
