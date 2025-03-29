@@ -5,16 +5,21 @@ import MapDisplay from "./MapDisplay.tsx";
 import RPMDisplay from "./RPMDisplay.tsx";
 import SpeedDisplay from "./SpeedDisplay.tsx";
 
-const CarDisplay = ({ carState }: { carState: CarStateType }) => {
+type CarDisplayProps = {
+  carState: CarStateType;
+  id: string;
+};
+
+const CarDisplay = ({ carState, id }: CarDisplayProps) => {
   return (
     <>
-      <Title>Car {carState.id}</Title>
+      <Title>Car {id}</Title>
       <Grid w={{ base: "100%", md: 1300 }}>
         <Grid.Col span={{ base: 12, lg: 6 }}>
           <MapDisplay
             heading={carState.heading}
-            lat={carState.position[0]}
-            lng={carState.position[1]}
+            lat={carState.latitude}
+            lng={carState.longitude}
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, lg: 2 }}>
@@ -24,11 +29,8 @@ const CarDisplay = ({ carState }: { carState: CarStateType }) => {
           <RPMDisplay rpm={carState.rpm} />
         </Grid.Col>
         <Grid.Col span={{ base: 12, lg: 2 }}>
-          <HeartBeatDisplay heartrate={carState.heartrate} />
+          <HeartBeatDisplay heartrate={carState.heart_rate} />
         </Grid.Col>
-        {/*<Grid.Col span={2}>
-          <BrakeDisplay brakeTemp={carState.brake_temp} />
-        </Grid.Col>*/}
       </Grid>
     </>
   );

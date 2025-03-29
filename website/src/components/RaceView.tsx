@@ -1,6 +1,7 @@
+import { map, pickBy, size } from "lodash-es";
 import { useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import { PAGE, RaceStateType } from "../commonTypes.ts";
+import { IncomingPacket, PAGE, RaceStateType } from "../commonTypes.ts";
 import CarDisplay from "./CarDisplay.tsx";
 
 type RaceViewProps = {
@@ -15,17 +16,30 @@ const WS_URL =
     : "wss://pitstop.driftfun.no:8888";
 
 const RaceView = ({ setPage, setConnectionState, setTime }: RaceViewProps) => {
-  const [raceState, setRaceState] = useState<RaceStateType>([]);
+  const [raceState, setRaceState] = useState<RaceStateType>({});
 
   const { readyState } = useWebSocket(WS_URL, {
     share: true,
     shouldReconnect: () => true,
     reconnectInterval: 3000,
     onMessage: (event) => {
-      const parsedData = JSON.parse(event.data);
-      // console.log("Received: ", parsedData);
-      setRaceState(parsedData);
-      setTime(parsedData[0].timestamp);
+      const parsedData = JSON.parse(event.data) as IncomingPacket;
+
+      console.log("Received: ", parsedData);
+
+      const currentTime = Date.now();
+      const carsUpdatedLast5Minutes = pickBy(raceState, (car) => {
+        return currentTime - car.timestamp > 5 * 60 * 1000;
+      });
+
+      const newRaceState: RaceStateType = {
+        ...carsUpdatedLast5Minutes,
+        [parsedData.uuid]: {
+          ...parsedData.vehicle,
+        },
+      };
+
+      setRaceState(newRaceState);
     },
     onClose: () => {
       setTime(null);
@@ -38,11 +52,13 @@ const RaceView = ({ setPage, setConnectionState, setTime }: RaceViewProps) => {
     setConnectionState(readyState);
   }, [readyState]);
 
+  console.log("RaceState: ", raceState);
+
   return (
     <>
-      {raceState.length === 0 && <div>No cars connected yet...</div>}
-      {raceState.map((carState) => (
-        <CarDisplay key={carState.id} carState={carState} />
+      {size(raceState) === 0 && <div>No cars connected yet...</div>}
+      {map(raceState, (carState, uuid) => (
+        <CarDisplay key={uuid} id={uuid} carState={carState} />
       ))}
     </>
   );

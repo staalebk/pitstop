@@ -3,17 +3,27 @@ export enum PAGE {
   RACE_VIEW,
 }
 
-export type RaceStateType = CarStateType[];
+export type IncomingPacket = {
+  uuid: string;
+  vehicle: CarStateType;
+};
+
+export type RaceStateType = Record<string, CarStateType>;
 
 export type CarStateType = {
-  id: string;
-  timestamp: number;
-  speed: number;
-  heartrate: number;
-  heading: number;
+  accelerator: number;
+  brake: number;
   brake_temp: SixteenNumberArray;
+  clutch: number;
+  coolant_temp: number;
+  heading: number;
+  heart_rate: number;
+  latitude: number;
+  longitude: number;
+  oil_temp: number;
   rpm: number;
-  position: [number, number];
+  speed: number;
+  timestamp: number; // Unix timestamp in microseconds
 };
 
 export type SixteenNumberArray = [
