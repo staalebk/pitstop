@@ -4,7 +4,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include "protocol.h"
-
+extern bool isWiFiConnected();
 uint8_t broadcastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 void onESPSend(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -50,11 +50,13 @@ void setupESPNOW() {
 }
 
 void sendChannelESPNOW() {
+    static uint8_t counter = 0;
     uint8_t payload[5];
     uint32_t magic = 0x1337BEEF;
     memcpy(payload, &magic, 4);             // First 4 bytes = magic
     payload[4] = WiFi.channel();            // 5th byte = channel
-    Serial.printf("Sending ESPNOW channel %d\n", payload[4]);
+    if (!counter++)
+        Serial.printf("Sending ESPNOW channel %d\n", payload[4]);
   
     esp_err_t result = esp_now_send(broadcastAddr, payload, sizeof(payload));
     if (result != ESP_OK) {
@@ -62,4 +64,14 @@ void sendChannelESPNOW() {
     }
   }
 
+  TickType_t espWakeTime = xTaskGetTickCount();
+  void espnowSendingThread(void* pvParams) {
+    while (true) {
+        if (isWiFiConnected()) {
+            sendChannelESPNOW();
+        }
+        Serial.println("");
+        vTaskDelayUntil(&espWakeTime, pdMS_TO_TICKS(1000));
+    }
+}
 #endif

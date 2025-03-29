@@ -8,8 +8,8 @@
 const char* WIFI_SSID = "ez";
 const char* WIFI_PASS = "ez123456";
 
-const char* UDP_TARGET_IP = "192.168.1.10";
-const int UDP_TARGET_PORT = 1234;
+const char* UDP_TARGET_IP = "84.211.23.46";
+const int UDP_TARGET_PORT = 5005;
 const int UDP_LOCAL_PORT = 4210;
 
 WiFiUDP udp;
@@ -18,42 +18,62 @@ unsigned long lastAttempt = 0;
 const unsigned long reconnectInterval = 1000;
 
 void connectWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+	WiFi.disconnect(true, true); // full disconnect and erase config
+	delay(100);
 
-  WiFi.disconnect();
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
-    delay(200);
-    Serial.print(".");
-  }
+	WiFi.begin(WIFI_SSID, WIFI_PASS);
+	Serial.println("[WiFi] Connecting...");
 
-  wifiConnected = WiFi.status() == WL_CONNECTED;
-  if (wifiConnected) {
-    Serial.println("\n[WiFi] Connected");
-    udp.begin(UDP_LOCAL_PORT);
-  } else {
-    Serial.println("\n[WiFi] Failed");
-  }
+	unsigned long start = millis();
+	while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+		delay(500);
+		Serial.print(".");
+	}
+
+	if (WiFi.status() == WL_CONNECTED) {
+		Serial.println("\n[WiFi] Connected. IP: " + WiFi.localIP().toString());
+		udp.begin(UDP_LOCAL_PORT);
+		wifiConnected = true;
+	} else {
+		Serial.println("\n[WiFi] Connection FAILED");
+		wifiConnected = false;
+	}
 }
+
 
 void setupWiFi() {
   WiFi.mode(WIFI_STA);
   connectWiFi();
 }
 
+int wifiFailCount = 0;
+const int maxFailsBeforeReboot = 5;
+
 void maintainWiFi() {
-  if (millis() - lastAttempt > reconnectInterval) {
-    lastAttempt = millis();
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("[WiFi] Reconnecting...");
-      wifiConnected = false;
-      connectWiFi();
-    } else {
-      wifiConnected = true;
-    }
-  }
+	if (millis() - lastAttempt > reconnectInterval) {
+		lastAttempt = millis();
+
+		if (WiFi.status() != WL_CONNECTED) {
+			Serial.println("[WiFi] Disconnected. Reconnecting...");
+			connectWiFi();
+
+			if (WiFi.status() != WL_CONNECTED) {
+				wifiFailCount++;
+				Serial.printf("[WiFi] Fail count: %d\n", wifiFailCount);
+
+				if (wifiFailCount >= maxFailsBeforeReboot) {
+					Serial.println("[WiFi] Too many failures. Restarting ESP...");
+					delay(1000);
+					ESP.restart();
+				}
+			}
+		} else {
+			wifiConnected = true;
+			wifiFailCount = 0; // Reset fail count on success
+		}
+	}
 }
+
 
 bool isWiFiConnected() {
   return wifiConnected;
@@ -96,13 +116,13 @@ void sendAuthUDP() {
 
 	// Send the packet
 	udp.beginPacket(UDP_TARGET_IP, UDP_TARGET_PORT);
-	udp.write((uint8_t*)&packet, sizeof(DataPacket));
+	udp.write((uint8_t*)&packet, sizeof(AuthenticationPacket));
 	udp.endPacket();
 }
 
 void sendStatusUDP() {
 	DataPacket packet = {};
-
+    /*
 	// Fill protocol version and timestamp
 	packet.protocolVersion = 0x00;
 	packet.timestamp = (int64_t)(micros()) / 100000 * 100000; // align to 100,000 µs
@@ -127,11 +147,43 @@ void sendStatusUDP() {
 		packet.positions[i].longitude = (uint32_t)(10.123456 * 6000000.0);
 		packet.positions[i].rpm = 3450;
 	}
-
+    */
+   if (xSemaphoreTake(packetMutex, portMAX_DELAY)) {
+        udp.beginPacket(UDP_TARGET_IP, UDP_TARGET_PORT);
+        udp.write((uint8_t*)&simulatedPacket, sizeof(DataPacket));
+        udp.endPacket();
+        
+        //Serial.printf("Heading %u, RPM: %u\n", simulatedPacket.vehicleData.heading, simulatedPacket.positions[0].rpm);
+        xSemaphoreGive(packetMutex);
+    }
+    /*
 	// Send the packet
 	udp.beginPacket(UDP_TARGET_IP, UDP_TARGET_PORT);
 	udp.write((uint8_t*)&packet, sizeof(DataPacket));
 	udp.endPacket();
+    */
 }
+
+TickType_t udpWakeTime = xTaskGetTickCount();
+void udpSendingThread(void* pvParams) {
+    while (true) {
+        sendStatusUDP();
+        Serial.printf("U");
+        vTaskDelayUntil(&udpWakeTime, pdMS_TO_TICKS(100));
+    }
+}
+
+TickType_t udpAuthWakeTime = xTaskGetTickCount();
+void udpAuthSendingThread(void* pvParams) {
+    while (true) {
+        if (isWiFiConnected()) {
+            sendAuthUDP();
+        }
+        Serial.printf("A");
+        vTaskDelayUntil(&udpAuthWakeTime, pdMS_TO_TICKS(100));
+    }
+}
+
+
 
 #endif

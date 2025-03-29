@@ -1,4 +1,5 @@
 #include "protocol.h"
+#include "FakeDataGenerator.h"
 #include "screen.h"
 #include "WiFiManager.h"
 #include "ESPNOWManager.h"
@@ -11,16 +12,17 @@ void setup() {
     Serial.begin(115200);
     setupWiFi();
     setupESPNOW();
+    packetMutex = xSemaphoreCreateMutex();
+    xTaskCreatePinnedToCore(simulateCarLoop, "FakeDataTask", 4096, NULL, 1, NULL, 1);
+    xTaskCreatePinnedToCore(udpSendingThread, "UDPSendingThread", 4096, NULL, 1, NULL, 1);
+    xTaskCreatePinnedToCore(udpAuthSendingThread, "UDPAuthSendingThread", 4096, NULL, 1, NULL, 1);
+    xTaskCreatePinnedToCore(espnowSendingThread, "espnowSendingThread", 4096, NULL, 1, NULL, 1);
 }
 
 void loop() {
-    carData.state.speed += 0.1;
+    static uint8_t counter;
     maintainWiFi();
 
-    if (isWiFiConnected()) {
-        sendChannelESPNOW();
-        sendAuthUDP();
-    }
-    drawSpeed(carData.state.speed);
-    delay(1000);
+    drawSpeed(simulatedPacket.vehicleData.speed*1.0/100);
+    //delay(100);
 }
