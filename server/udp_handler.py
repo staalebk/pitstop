@@ -4,50 +4,74 @@ import uuid
 import asyncudp
 from collections import deque
 from shared import active_senders
+from typing import TypedDict, List, Tuple
 
 # Contains a mapping from the address of the sender to the UUID of the sender
 addr_to_uuid = {}
 
+class DataPacket(TypedDict):
+    timestamp: int
+    speed: float
+    heading: float
+    heartrate: int
+    coolant_temp: int
+    oil_temp: int
+    accelerator: int
+    clutch: int
+    brake: int
+    brake_temp: List[float]
+    positions: List[Tuple[float, float]]
+    rpms: List[int]
 
-def parse_data_packet(payload):
+def parse_data_packet(payload) -> DataPacket | None:
     try:
+        # Unpack protocol version
+        protocol_version, = struct.unpack('<B', payload[0:1])
+        if protocol_version != 0x00:
+            raise ValueError("Unsupported protocol version")
+        payload = payload[1:]
+
         # Unpack timestamp
-        timestamp, = struct.unpack('<Q', payload[1:9])
-        payload = payload[9:]
+        timestamp, = struct.unpack('<Q', payload[0:8])
+        payload = payload[8:]
 
         # Change timestamps from microseconds to milliseconds
         timestamp = timestamp // 1000
 
         # Round to closest 100 ms
         timestamp = (timestamp // 100) * 100
-        # print("Data parsing timestamp", timestamp)
 
         # Unpack current data
-        speed, heading, *brake_temp, heartrate = struct.unpack('<HH' + 'H'*16 + 'B', payload[:37])
-        payload = payload[37:]
-        # print("Data parsing speed", speed)
-        # print("Data parsing heading", heading)
-        # print("Data parsing brake_temp", brake_temp)
+        speed, heading = struct.unpack('<HH', payload[0:4])
+        payload = payload[4:]
+
+        brake_temp = struct.unpack('<' + 'H'*16, payload[0:32])
+        payload = payload[32:]
+
+        heartrate, coolant_temp, oil_temp, accelerator, clutch, brake = struct.unpack('<BBBBBB', payload[0:6])
+        payload = payload[6:]
 
         # Unpack array of the position of the last 40 * 100ms
         positions = []
         rpms = []
         for _ in range(40):
-            lat, long, rpm = struct.unpack('<IIH', payload[:10])
+            lat, long, rpm = struct.unpack('<IIH', payload[0:10])
             lat /= 6000000.0
             long /= 6000000.0
             positions.append((lat, long))
             rpms.append(rpm)
             payload = payload[10:]
 
-        # print("Data parsing positions", positions)
-        # print("Data parsing rpm", rpms)
-
-        message = {
+        message: DataPacket = {
             'timestamp': timestamp,
-            'speed': speed * 3.6,  # Convert to km/h
-            'heading': heading,  # Convert to degrees
+            'speed': speed / 100.0,  # Convert to km/h
+            'heading': heading / 100.0,  # Convert to degrees
             'heartrate': heartrate,  # Heart rate
+            'coolant_temp': coolant_temp,  # Coolant temperature
+            'oil_temp': oil_temp,  # Engine oil temperature
+            'accelerator': accelerator,  # Accelerator percentage
+            'clutch': clutch,  # Clutch percentage
+            'brake': brake,  # Brake percentage
             'brake_temp': [temp / 10 - 100 for temp in brake_temp],  # 16 brake temps to C
             'positions': positions,  # Locations
             'rpms': rpms  # RPMs
@@ -57,6 +81,9 @@ def parse_data_packet(payload):
 
     except struct.error as e:
         print("Error parsing message:", e)
+        return None
+    except ValueError as e:
+        print("Error:", e)
         return None
 
 
@@ -97,8 +124,11 @@ def handle_data_packet(payload, sender_addr):
         'timestamp': data_message['timestamp'],
         'speed': data_message['speed'],
         'heading': data_message['heading'],
-        'heartrate': data_message['heartrate'],
-        'brake_temp': data_message['brake_temp'],
+        'coolant_temp': data_message['coolant_temp'],
+        'oil_temp': data_message['oil_temp'],
+        'accelerator': data_message['accelerator'],
+        'clutch': data_message['clutch'],
+        'brake': data_message['brake'],
         'position': data_message['positions'][0],
         'rpm': data_message['rpms'][0]
     }

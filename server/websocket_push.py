@@ -1,12 +1,11 @@
 import asyncio
 import json
-import math
 import time
 import ssl
-from collections import deque
 
 import websockets
-from websockets.server import serve
+from websockets.asyncio.server import ServerConnection
+from websockets.asyncio.server import serve
 from shared import active_senders
 
 
@@ -48,7 +47,7 @@ def get_start_timestamp():
     return current_timestamp
 
 
-async def push_data_to_websocket(websocket):
+async def push_data_to_websocket(websocket: ServerConnection):
     print("New websocket connection from", websocket.remote_address)
 
     current_timestamp = get_start_timestamp()
@@ -60,10 +59,6 @@ async def push_data_to_websocket(websocket):
     # active_senders['abc-123'] = deque([], maxlen=100)
 
     while True:
-        if websocket.closed:
-            print("Websocket connection closed to", websocket.remote_address)
-            break
-
         if current_timestamp is None:
             current_timestamp = get_start_timestamp()
 
@@ -96,8 +91,11 @@ async def push_data_to_websocket(websocket):
                 # print("Sending", payload_to_send)
                 await websocket.send(json.dumps(payload_to_send))
                 # print("Sent", len(payload_to_send), "entries to", websocket.remote_address)
+            except websockets.ConnectionClosedOK:
+                print("Websocket connection closed (OK) to", websocket.remote_address)
+                break
             except websockets.ConnectionClosedError:
-                print("Websocket connection closed to", websocket.remote_address)
+                print("Websocket connection closed (error) )to", websocket.remote_address)
                 break
 
         # Wait for a short period before sending the next update
@@ -118,6 +116,7 @@ async def listen_for_websocket(hostname, port, dev=False):
     else:
         ssl_context = None
 
-    stop = asyncio.Future()
+    stop = asyncio.get_running_loop().create_future()
+
     async with serve(push_data_to_websocket, hostname, port, ssl=ssl_context):
         await stop
