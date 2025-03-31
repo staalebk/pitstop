@@ -23,6 +23,14 @@ void onESPReceive(const esp_now_recv_info_t *recvInfo, const uint8_t *incomingDa
         }
         memcpy(&carData, incomingData, sizeof(carData));
         Serial.print(".");
+    } else if (len == sizeof(GPSData)) {
+        GPSData *gps = (GPSData *) incomingData;
+        if (gps->magic != 0x1337D00F) {
+            Serial.println("Invalid ESPNOW magic");
+            return;            
+        }
+        memcpy(&gpsData, incomingData, sizeof(gpsData));
+        Serial.print("G");
     } else {
         Serial.println("Invalid ESPNOW length");
     }

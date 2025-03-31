@@ -5,6 +5,7 @@
 #include "ESPNOWManager.h"
 
 CarData carData;
+GPSData gpsData;
 
 void setup() {
     setupScreen();

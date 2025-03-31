@@ -8,7 +8,8 @@
 const char* WIFI_SSID = "ez";
 const char* WIFI_PASS = "ez123456";
 
-const char* UDP_TARGET_IP = "84.211.23.46";
+//const char* UDP_TARGET_IP = "84.211.23.46";
+const char* UDP_TARGET_IP = "172.232.157.107";
 const int UDP_TARGET_PORT = 5005;
 const int UDP_LOCAL_PORT = 4210;
 
@@ -47,7 +48,7 @@ void setupWiFi() {
 }
 
 int wifiFailCount = 0;
-const int maxFailsBeforeReboot = 5;
+const int maxFailsBeforeReboot = 3;
 
 void maintainWiFi() {
 	if (millis() - lastAttempt > reconnectInterval) {
@@ -62,8 +63,9 @@ void maintainWiFi() {
 				Serial.printf("[WiFi] Fail count: %d\n", wifiFailCount);
 
 				if (wifiFailCount >= maxFailsBeforeReboot) {
-					Serial.println("[WiFi] Too many failures. Restarting ESP...");
-					delay(1000);
+					Serial.println("[WiFi] Too many failures. Restarting ESP in 10 sec...");
+                    WiFi.disconnect(true, true);
+					delay(10000);
 					ESP.restart();
 				}
 			}
@@ -167,8 +169,10 @@ void sendStatusUDP() {
 TickType_t udpWakeTime = xTaskGetTickCount();
 void udpSendingThread(void* pvParams) {
     while (true) {
-        sendStatusUDP();
-        Serial.printf("U");
+        if (isWiFiConnected()) {
+            sendStatusUDP();
+            Serial.printf("U");
+        }
         vTaskDelayUntil(&udpWakeTime, pdMS_TO_TICKS(100));
     }
 }
@@ -178,9 +182,9 @@ void udpAuthSendingThread(void* pvParams) {
     while (true) {
         if (isWiFiConnected()) {
             sendAuthUDP();
+            Serial.printf("A");
         }
-        Serial.printf("A");
-        vTaskDelayUntil(&udpAuthWakeTime, pdMS_TO_TICKS(100));
+        vTaskDelayUntil(&udpAuthWakeTime, pdMS_TO_TICKS(10000));
     }
 }
 

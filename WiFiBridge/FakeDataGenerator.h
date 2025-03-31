@@ -7,9 +7,9 @@ SemaphoreHandle_t packetMutex;
 
 // Simple fake track params
 float angle = 0.0f;
-const float radius = 0.0100f; // approx 11m radius loop
-const float centerLat = 59.123456;
-const float centerLon = 10.123456;
+const float radius = 0.0010f; // approx 11m radius loop
+const float centerLat = 58.3690644;
+const float centerLon = 15.2868968;
 uint16_t rpm = 3000;
 TickType_t simWakeTime = xTaskGetTickCount();
 void simulateCarLoop(void* pvParams) {
