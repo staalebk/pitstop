@@ -38,11 +38,12 @@ RaceboxDataMessage latest;
 void sendGPSESPNOW(RaceboxDataMessage *data) {
     static uint8_t counter = 0;
     GPSData gpsdata = {};
-    memcpy(data, &gpsdata.RDM, sizeof(RaceboxDataMessage));
+    memcpy(&gpsdata.RDM, data, sizeof(RaceboxDataMessage));
   
     esp_err_t result = esp_now_send(broadcastAddr, (uint8_t *)&gpsdata, sizeof(gpsdata));
     if (result != ESP_OK) {
-      Serial.printf("[ESPNOW] Send failed %d", sizeof(gpsdata));
+      //Serial.printf("[ESPNOW] Send failed %d\n", sizeof(gpsdata));
+      Serial.printf("esp_now_send failed: %s (0x%x)\n", esp_err_to_name(result), result);
     }
 }
 
@@ -53,7 +54,8 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
  
      void onDisconnect(NimBLEClient* pClient, int reason) override {
          Serial.printf("%s Disconnected, reason = %d - Starting scan\n", pClient->getPeerAddress().toString().c_str(), reason);
-         NimBLEDevice::getScan()->start(scanTimeMs, false, true);
+         //NimBLEDevice::getScan()->start(scanTimeMs, false, true);
+         doConnect = true;
      }
  
      /********************* Security handled here *********************/
@@ -86,9 +88,9 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
  /** Define a class to handle the callbacks when scan events are received */
  class ScanCallbacks : public NimBLEScanCallbacks {
      void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override {
-         Serial.printf("Advertised Device found: %s\n", advertisedDevice->toString().c_str());
          if (advertisedDevice->getName() == "RaceBox Mini S 2231802051") {
          //if (advertisedDevice->isAdvertisingService(NimBLEUUID("DEAD"))) {
+            Serial.printf("Advertised Device found: %s\n", advertisedDevice->toString().c_str());
              Serial.printf("Found Our Service\n");
              /** stop scan before connecting */
              NimBLEDevice::getScan()->stop();
@@ -102,7 +104,8 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
      /** Callback to process the results of the completed scan or restart it */
      void onScanEnd(const NimBLEScanResults& results, int reason) override {
          Serial.printf("Scan Ended, reason: %d, device count: %d; Restarting scan\n", reason, results.getCount());
-         NimBLEDevice::getScan()->start(scanTimeMs, false, true);
+         if(advDevice == NULL)
+            NimBLEDevice::getScan()->start(scanTimeMs, false, true);
      }
  } scanCallbacks;
  
@@ -202,15 +205,18 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
           *  connections. Timeout should be a multiple of the interval, minimum is 100ms.
           *  Min interval: 12 * 1.25ms = 15, Max interval: 12 * 1.25ms = 15, 0 latency, 150 * 10ms = 1500ms timeout
           */
-         pClient->setConnectionParams(6, 6, 0, 500);
+         //pClient->setConnectionParams(6, 6, 0, 500);
+         pClient->setConnectionParams(12, 12, 0, 150);
  
          /** Set how long we are willing to wait for the connection to complete (milliseconds), default is 30000. */
          pClient->setConnectTimeout(5 * 1000);
+         //delay(100);
  
          if (!pClient->connect(advDevice)) {
              /** Created a client but failed to connect, don't need to keep it as it has no data */
              NimBLEDevice::deleteClient(pClient);
              Serial.printf("Failed to connect, deleted client\n");
+             doConnect = true;
              return false;
          }
      }
@@ -218,6 +224,7 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
      if (!pClient->isConnected()) {
          if (!pClient->connect(advDevice)) {
              Serial.printf("Failed to connect\n");
+             doConnect = true;
              return false;
          }
      }
@@ -278,6 +285,7 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
              if (pChr->canNotify()) {
                  if (!pChr->subscribe(true, notifyCB)) {
                      pClient->disconnect();
+                     Serial.printf("Can't subscribe\n");
                      return false;
                  }
              }
@@ -319,6 +327,17 @@ void setupESPNOW() {
     }
 
     esp_now_register_recv_cb(onESPReceive);
+    
+    esp_now_peer_info_t peerInfo = {};
+    memcpy(peerInfo.peer_addr, broadcastAddr, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+
+    if (!esp_now_is_peer_exist(broadcastAddr)) {
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+        Serial.println("[ESPNOW] Failed to add peer");
+    }
+    }
 }
 
  void setup() {
@@ -382,7 +401,8 @@ void setupESPNOW() {
             Serial.printf("Success! we should now be getting notifications, scanning for more!\n");
         } else {
             Serial.printf("Failed to connect, starting scan\n");
-            NimBLEDevice::getScan()->start(scanTimeMs, false, true);
+            doConnect = true;
+           //NimBLEDevice::getScan()->start(scanTimeMs, false, true);
         }
         //NimBLEDevice::getScan()->start(scanTimeMs, false, true);
     }

@@ -30,6 +30,9 @@ void onESPReceive(const esp_now_recv_info_t *recvInfo, const uint8_t *incomingDa
             return;            
         }
         memcpy(&gpsData, incomingData, sizeof(gpsData));
+        static uint8_t counter;
+        if(!counter++)
+            Serial.printf("fix: %d\n", gpsData.RDM.fixStatus);
         Serial.print("G");
     } else {
         Serial.println("Invalid ESPNOW length");
@@ -70,10 +73,10 @@ void sendChannelESPNOW() {
     if (result != ESP_OK) {
       Serial.println("[ESPNOW] Send failed");
     }
-  }
+}
 
-  TickType_t espWakeTime = xTaskGetTickCount();
-  void espnowSendingThread(void* pvParams) {
+TickType_t espWakeTime = xTaskGetTickCount();
+void espnowSendingThread(void* pvParams) {
     while (true) {
         if (isWiFiConnected()) {
             sendChannelESPNOW();

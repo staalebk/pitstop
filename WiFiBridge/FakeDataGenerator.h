@@ -30,6 +30,10 @@ void simulateCarLoop(void* pvParams) {
 			// Heading changes like turning on a small track
 			float headingDeg = fmod(simTime * 20.0f, 360.0f);
 			simulatedPacket.vehicleData.heading = (uint16_t)(headingDeg * 100);
+            if(gpsData.RDM.fixStatus == 3) {
+                simulatedPacket.vehicleData.heading = (uint16_t)(gpsData.RDM.heading / 10e3);
+                simulatedPacket.vehicleData.speed = (uint16_t)(gpsData.RDM.speed * 0.36);
+            }
 
 			// Brake temps oscillate a bit, higher during braking phase
 			brakePhase = 0.5f + 0.5f * sin(simTime * 0.8f);
@@ -59,8 +63,14 @@ void simulateCarLoop(void* pvParams) {
 				float offset = t * 0.5f;
 				float lat = centerLat + radius * cos(offset);
 				float lon = centerLon + radius * sin(offset);
+                if(gpsData.RDM.fixStatus == 3) {
+                    lat = gpsData.RDM.latitude*1.0/1e7;
+                    lon = gpsData.RDM.longitude*1.0/1e7;
+                }
 				simulatedPacket.positions[i].latitude = (uint32_t)(lat * 6000000.0f);
 				simulatedPacket.positions[i].longitude = (uint32_t)(lon * 6000000.0f);
+                
+                
 
 				// RPM = speed (m/s) * gear ratio approximation
 				float speedMps = speedKmh / 3.6f;
