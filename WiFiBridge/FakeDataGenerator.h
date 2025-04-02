@@ -31,7 +31,7 @@ void simulateCarLoop(void* pvParams) {
 			float headingDeg = fmod(simTime * 20.0f, 360.0f);
 			simulatedPacket.vehicleData.heading = (uint16_t)(headingDeg * 100);
             if(gpsData.RDM.fixStatus == 3) {
-                simulatedPacket.vehicleData.heading = (uint16_t)(gpsData.RDM.heading / 10e3);
+                simulatedPacket.vehicleData.heading = (uint16_t)(gpsData.RDM.heading / 10e2);
                 simulatedPacket.vehicleData.speed = (uint16_t)(gpsData.RDM.speed * 0.36);
             }
 
