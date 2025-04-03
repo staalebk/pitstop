@@ -20,6 +20,8 @@ extern "C" {
 #define ESPNOW_MAGIC 0x1337BEEF
 
 uint8_t broadcastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+//char raceboxName[] = "RaceBox Mini S 2231802051";
+char raceboxName[] = "RaceBox Mini 1221403432";
 
 uint8_t current_channel = 1;
 bool locked_channel = false;
@@ -88,7 +90,7 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
  /** Define a class to handle the callbacks when scan events are received */
  class ScanCallbacks : public NimBLEScanCallbacks {
      void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override {
-         if (advertisedDevice->getName() == "RaceBox Mini S 2231802051") {
+         if (advertisedDevice->getName() == raceboxName) {
          //if (advertisedDevice->isAdvertisingService(NimBLEUUID("DEAD"))) {
             Serial.printf("Advertised Device found: %s\n", advertisedDevice->toString().c_str());
              Serial.printf("Found Our Service\n");
@@ -98,6 +100,8 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
              advDevice = advertisedDevice;
              /** Ready to connect now */
              doConnect = true;
+         } else if (advertisedDevice->getName().starts_with("RaceBox")){
+            Serial.printf("Ignoring racebox: %s\n", advertisedDevice->toString().c_str());
          }
      }
  
