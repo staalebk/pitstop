@@ -2,6 +2,7 @@ import asyncio
 import json
 import websockets
 import logging
+import ssl
 from typing import Set
 
 
@@ -14,11 +15,15 @@ class WebSocketServer:
 
     async def broadcast(self, message):
         if self.clients:
-            await asyncio.wait([asyncio.create_task(client.send(message)) for client in self.clients])
+            await asyncio.wait(
+                [asyncio.create_task(client.send(message)) for client in self.clients]
+            )
 
     async def handler(self, websocket):
         """Simple handler that just adds the client to the set and removes it when disconnected.
         No longer processes incoming messages as they are not needed."""
+        logging.info(f"Client connected: {websocket.remote_address}")
+
         self.clients.add(websocket)
         try:
             # Just keep the connection alive, but don't process incoming messages
@@ -28,16 +33,41 @@ class WebSocketServer:
         except websockets.exceptions.ConnectionClosedError as e:
             logging.error(f"WebSocket connection closed with error: {e}")
         finally:
+            logging.info(f"Client disconnected: {websocket.remote_address}")
             self.clients.remove(websocket)
 
-    async def start(self):
+    async def start(self, devmode):
         """Starts the WebSocket server and returns the Server instance."""
         try:
+            if devmode is False:
+                logging.info(
+                    "Starting WebSocket server in production mode, with SSL enabled"
+                )
+                cert_folder = "/etc/letsencrypt/live/pitstop.driftfun.no"
+                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                cert_file = cert_folder + "/fullchain.pem"
+                key_file = cert_folder + "/privkey.pem"
+                ssl_context.load_cert_chain(cert_file, key_file)
+            else:
+                logging.info(
+                    "Starting WebSocket server in development mode, with SSL disabled"
+                )
+                ssl_context = None
+
             # Start the server
             self.server_instance = await websockets.serve(
-                self.handler, self.host, self.port
+                self.handler, self.host, self.port, ssl=ssl_context
             )
-            logging.info(f"WebSocket server started on ws://{self.host}:{self.port}")
+
+            if devmode:
+                logging.info(
+                    f"WebSocket server started on ws://{self.host}:{self.port}"
+                )
+            else:
+                logging.info(
+                    f"WebSocket server started on wss://{self.host}:{self.port}"
+                )
+
             return (
                 self.server_instance
             )  # Return the server object for graceful shutdown handling

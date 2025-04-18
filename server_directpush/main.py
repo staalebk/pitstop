@@ -7,7 +7,10 @@ from websocket_handler import WebSocketServer
 
 # Configure basic logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename="logs/server.log",
+    filemode="w",
 )
 
 # Global flag to signal shutdown
@@ -19,13 +22,19 @@ async def main():
     parser.add_argument("--dev", action="store_true", help="Use development host")
     args = parser.parse_args()
 
+    devmode = False
     if args.dev:
+        devmode = True
         host = "192.168.1.110"
     else:
         host = "pitstop.driftfun.no"
 
     ws_port = 8888
     udp_port = 5005
+
+    logging.info(
+        f"Starting server on {host} with ports {ws_port} (WebSocket) and {udp_port} (UDP)"
+    )
 
     ws_server = WebSocketServer(host=host, port=ws_port)
     udp_handler = UDPHandler()
@@ -53,7 +62,7 @@ async def main():
     # --- Start Servers ---
     try:
         # Start WebSocket Server
-        ws_server_instance = await ws_server.start()
+        ws_server_instance = await ws_server.start(devmode)
         if not ws_server_instance:
             logging.error("Failed to start WebSocket server. Exiting.")
             return  # Exit if WebSocket server fails to start
