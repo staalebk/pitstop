@@ -23,7 +23,8 @@ const float metersPerDegLon = 111320.0f * cosf(centerLat * M_PI/180.0f);
 static float simTime    = 0.0f;      // seconds
 static float pathDist_m = 0.0f;      // meters along the oval
 static float coolantTemp = 80.0f, oilTemp = 110.0f;
-bool hasFix = false, hasCAN = false;
+bool hasFix = false;
+extern bool hasCAN;
 
 static void trackXY(float d, float &x, float &y) {
     // segment lengths

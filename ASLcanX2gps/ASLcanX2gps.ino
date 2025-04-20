@@ -8,6 +8,7 @@ extern "C" {
 #include "protocol.h"
 #include "wifimanager.h"
 #include "fakedata.h"
+#include "canbus.h"
 
 #define CHANNEL_SCAN_INTERVAL_MS 4000
 #define ESPNOW_MAGIC 0x1337BEEF
@@ -20,6 +21,7 @@ char raceboxName[] = "RaceBox Mini S 2231802051";
 
 uint8_t current_channel = 1;
 bool locked_channel = false;
+bool hasCAN = false;
 
 static const NimBLEAdvertisedDevice* advDevice;
 static bool doConnect  = false;
@@ -310,6 +312,7 @@ void setup() {
     xTaskCreatePinnedToCore(udpAuthSendingThread, "UDPAuthSendingThread", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(udpSendingThread, "UDPSendingThread", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(simulateCarLoop, "FakeDataTask", 4096, NULL, 1, NULL, 1);
+    canBusSetup();
 }
 
 void loop() {
