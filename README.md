@@ -20,9 +20,9 @@ The protocol contains two types of packets, authentication packets and data pack
 
 * Data packets
   * One byte to tell which protocol version is in use: 0x00 for v0
-  * 8 bytes (int64), microseconds since 1970 for this packet. All packets in one stream MUST be on the same multiple of 100.000 microseconds. Preferably with the last 5 digits zero.
+  * 8 bytes (int64), microseconds since an arbitrary point in time for this packet.
   * Current data for vehicle:
-    * 2 bytes, uint16, speed in km/h * 100
+    * 2 bytes, uint16, GPS speed in km/h * 100
     * 2 bytes, uint16, heading in degrees * 100
     * 2 bytes * 16, contains brake temperature for 16 locations on brake disc, uint16, 0.1 C per bit, -100 C offset.
     * 1 byte, uint8 heart rate of driver.
@@ -31,7 +31,14 @@ The protocol contains two types of packets, authentication packets and data pack
     * 1 byte, uint8 accelerator %.
     * 1 byte, uint8 clutch %.
     * 1 byte, uint8 brake %.
-  * Repeated 40 times, positional data (100 ms time difference for each data entry), first elements are the most current data
     * 4 bytes, uint32_t, LAT * 6000000.0
     * 4 bytes, uint32_t, LONG * 6000000.0
     * 2 bytes, uint16, RPM
+    * 2 bytes, int16, G Force X
+    * 2 bytes, int16, G Force Y
+    * 2 bytes, int16, G Force Z
+    * 4 bytes, int32, Altitude (in mm)
+    * 2 bytes, uint16, FL Wheel speed in km/h * 100
+    * 2 bytes, uint16, FR Wheel speed in km/h * 100
+    * 2 bytes, uint16, RL Wheel speed in km/h * 100
+    * 2 bytes, uint16, RR Wheel speed in km/h * 100
