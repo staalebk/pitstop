@@ -163,3 +163,5 @@ cython_debug/
 
 certs/fullchain.pem
 certs/privkey.pem
+.vscode/
+
