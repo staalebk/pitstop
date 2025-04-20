@@ -16,7 +16,7 @@ extern "C" {
   }
 #include "racebox.h"
 
-#define CHANNEL_SCAN_INTERVAL_MS 2000
+#define CHANNEL_SCAN_INTERVAL_MS 4000
 #define ESPNOW_MAGIC 0x1337BEEF
 
 uint8_t broadcastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -27,8 +27,9 @@ uint8_t current_channel = 1;
 bool locked_channel = false;
 
 static const NimBLEAdvertisedDevice* advDevice;
-static bool                          doConnect  = false;
-static uint32_t                      scanTimeMs = 5000; /** scan time in milliseconds, 0 = scan forever */
+static bool doConnect  = false;
+static bool doScan = false;     
+static uint32_t scanTimeMs = 5000; /** scan time in milliseconds, 0 = scan forever */
 
 char model[100];
 char serial[100];
@@ -155,11 +156,15 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
     sendGPSESPNOW(&rp->RDM);
     static uint8_t counter;
     counter ++;
-    if (counter == 25){
+    if (counter == 255){
         Serial.printf("-----\n");
         Serial.printf("Fix: %d (sats: %d) accuracy (hor: %d vert: %d) Battery %d%%\n", latest.fixStatus, latest.numSVs, latest.horizontalAccuracy, latest.verticalAccuracy, latest.batteryStatus & 0x7F);
         Serial.printf("Pos: %f %f\n", latest.latitude*1.0/1e7, latest.longitude*1.0/1e7);
         Serial.printf("%d-%02d-%02d %02d:%02d:%02d.%d\n", latest.year, latest.month, latest.day, latest.hour, latest.minute, latest.second, latest.nanoseconds);
+        NimBLEClient* pClient = nullptr;
+        pClient = NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
+        if (pClient)
+            Serial.printf("RSSI: %d\n", pClient->getRssi());
         counter = 0;
     }
 }
@@ -179,6 +184,7 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
          if (pClient) {
              if (!pClient->connect(advDevice, false)) {
                  Serial.printf("Reconnect failed\n");
+                 NimBLEDevice::deleteClient(pClient);
                  return false;
              }
              Serial.printf("Reconnected client\n");
@@ -201,6 +207,7 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
          pClient = NimBLEDevice::createClient();
  
          Serial.printf("New client created\n");
+         delay(200);
  
          pClient->setClientCallbacks(&clientCallbacks, false);
          /**
@@ -209,8 +216,8 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
           *  connections. Timeout should be a multiple of the interval, minimum is 100ms.
           *  Min interval: 12 * 1.25ms = 15, Max interval: 12 * 1.25ms = 15, 0 latency, 150 * 10ms = 1500ms timeout
           */
-         //pClient->setConnectionParams(6, 6, 0, 500);
-         pClient->setConnectionParams(12, 12, 0, 150);
+         pClient->setConnectionParams(6, 6, 0, 500);
+         //pClient->setConnectionParams(12, 12, 0, 150);
  
          /** Set how long we are willing to wait for the connection to complete (milliseconds), default is 30000. */
          pClient->setConnectTimeout(5 * 1000);
@@ -304,6 +311,8 @@ void sendGPSESPNOW(RaceboxDataMessage *data) {
  
 
 void onESPReceive(const esp_now_recv_info_t *recvInfo, const uint8_t *incomingData, int len) {
+    if (!locked_channel)
+        Serial.printf("-------->    Received ESPNow     <------------------------\n");
     if (len == 5) {
         uint32_t magic;
         memcpy(&magic, incomingData, 4);
@@ -338,11 +347,24 @@ void setupESPNOW() {
     peerInfo.encrypt = false;
 
     if (!esp_now_is_peer_exist(broadcastAddr)) {
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-        Serial.println("[ESPNOW] Failed to add peer");
+        if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+            Serial.println("[ESPNOW] Failed to add peer");
+        }
     }
-    }
+    esp_wifi_set_ps(WIFI_PS_NONE);
 }
+
+int32_t getWiFiChannel(const char *ssid) {
+    if (int32_t n = WiFi.scanNetworks()) {
+        for (uint8_t i=0; i<n; i++) {
+            if (!strcmp(ssid, WiFi.SSID(i).c_str())) {
+                return WiFi.channel(i);
+            }
+            Serial.printf("Not the one we are looking for %s\n", WiFi.SSID(i).c_str());
+        }
+    }
+    return 0;
+  }
 
  void setup() {
      Serial.begin(115200);
@@ -360,43 +382,79 @@ void setupESPNOW() {
      // NimBLEDevice::setSecurityIOCap(BLE_HS_IO_KEYBOARD_ONLY); // use passkey
      // NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_YESNO); //use numeric comparison
  
-     /**
-      * 2 different ways to set security - both calls achieve the same result.
-      *  no bonding, no man in the middle protection, BLE secure connections.
-      *  These are the default values, only shown here for demonstration.
-      */
-     // NimBLEDevice::setSecurityAuth(false, false, true);
+    /**
+     * 2 different ways to set security - both calls achieve the same result.
+     *  no bonding, no man in the middle protection, BLE secure connections.
+     *  These are the default values, only shown here for demonstration.
+     */
+    // NimBLEDevice::setSecurityAuth(false, false, true);
  
-     NimBLEDevice::setSecurityAuth(/*BLE_SM_PAIR_AUTHREQ_BOND | BLE_SM_PAIR_AUTHREQ_MITM |*/ BLE_SM_PAIR_AUTHREQ_SC);
+    NimBLEDevice::setSecurityAuth(/*BLE_SM_PAIR_AUTHREQ_BOND | BLE_SM_PAIR_AUTHREQ_MITM |*/ BLE_SM_PAIR_AUTHREQ_SC);
  
-     /** Optional: set the transmit power */
-     NimBLEDevice::setPower(3); /** 3dbm */
-     NimBLEScan* pScan = NimBLEDevice::getScan();
- 
-     /** Set the callbacks to call when scan events occur, no duplicates */
-     pScan->setScanCallbacks(&scanCallbacks, false);
- 
-     /** Set scan interval (how often) and window (how long) in milliseconds */
-     pScan->setInterval(100);
-     pScan->setWindow(100);
- 
-     /**
-      * Active scan will gather scan response data from advertisers
-      *  but will use more energy from both devices
-      */
-     pScan->setActiveScan(true);
- 
-     /** Start scanning for advertisers */
-     pScan->start(scanTimeMs);
-     Serial.printf("Scanning for peripherals\n");
-     WiFi.mode(WIFI_STA);
-     setupESPNOW();
+    /** Optional: set the transmit power */
+    NimBLEDevice::setPower(3); /** 3dbm */
+
+    doScan = true;
+    WiFi.mode(WIFI_STA);
+    int32_t channel = 0;
+    int i = 10;
+    while (i--) {
+        Serial.println("Looking for channel...");
+        channel = getWiFiChannel("ez");
+        if (channel) {
+            Serial.printf("Found channel %d\n", channel);
+            break;
+        }
+    }
+    setupESPNOW();
+    if(channel) {
+        locked_channel = true;
+        esp_wifi_set_channel(locked_channel, WIFI_SECOND_CHAN_NONE);
+    } else {
+        xTaskCreatePinnedToCore(scannerTask, "scannerTask", 4096, NULL, 1, NULL, 1);
+    }
+    
  }
+
+ void scannerTask(void *parameter) {
+    for (;;) {
+        vTaskDelay(2000 / portTICK_PERIOD_MS);  // Delay for 1000ms
+        if (!locked_channel) {
+            for (uint8_t ch = 1; ch <= 13 && !locked_channel; ch++) {
+                Serial.printf("Scanning channel %d\n", ch);
+                esp_wifi_set_promiscuous(false);
+                esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
+                delay(CHANNEL_SCAN_INTERVAL_MS);
+            }
+        }
+    }
+  }
  
  void loop() {
     /** Loop here until we find a device we want to connect to */
     delay(1000);
 
+    if (doScan) {
+        NimBLEScan* pScan = NimBLEDevice::getScan();
+ 
+        /** Set the callbacks to call when scan events occur, no duplicates */
+        pScan->setScanCallbacks(&scanCallbacks, false);
+    
+        /** Set scan interval (how often) and window (how long) in milliseconds */
+        pScan->setInterval(100);
+        pScan->setWindow(100);
+    
+        /**
+         * Active scan will gather scan response data from advertisers
+         *  but will use more energy from both devices
+         */
+        pScan->setActiveScan(true);
+    
+        /** Start scanning for advertisers */
+        if (pScan->start(scanTimeMs))
+            doScan = false;
+        Serial.printf("Scanning for peripherals\n");
+    }
 
     if (doConnect) {
         doConnect = false;
@@ -404,20 +462,11 @@ void setupESPNOW() {
         if (connectToServer()) {
             Serial.printf("Success! we should now be getting notifications, scanning for more!\n");
         } else {
-            Serial.printf("Failed to connect, starting scan\n");
-            doConnect = true;
+            Serial.printf("Failed to connect, reconnect\n");
+            doConnect = false;
+            doScan = true;
            //NimBLEDevice::getScan()->start(scanTimeMs, false, true);
         }
         //NimBLEDevice::getScan()->start(scanTimeMs, false, true);
-    }
-    if (!locked_channel && !doConnect) {
-        for (uint8_t ch = 1; ch <= 13 && !locked_channel; ch++) {
-            Serial.printf("Scanning channel %d\n", ch);
-            esp_wifi_set_promiscuous(false);
-            esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
-            delay(CHANNEL_SCAN_INTERVAL_MS);
-        }
-    } else if (locked_channel) {
-        Serial.printf("Locked to channel %d\n", current_channel);
     }
  }
