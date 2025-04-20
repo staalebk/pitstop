@@ -31,14 +31,15 @@ The protocol contains two types of packets, authentication packets and data pack
     * 1 byte, uint8 accelerator %.
     * 1 byte, uint8 clutch %.
     * 1 byte, uint8 brake %.
-    * 4 bytes, uint32_t, LAT * 6000000.0
-    * 4 bytes, uint32_t, LONG * 6000000.0
-    * 2 bytes, uint16, RPM
-    * 2 bytes, int16, G Force X
-    * 2 bytes, int16, G Force Y
-    * 2 bytes, int16, G Force Z
-    * 4 bytes, int32, Altitude (in mm)
-    * 2 bytes, uint16, FL Wheel speed in km/h * 100
-    * 2 bytes, uint16, FR Wheel speed in km/h * 100
-    * 2 bytes, uint16, RL Wheel speed in km/h * 100
-    * 2 bytes, uint16, RR Wheel speed in km/h * 100
+    * 4 bytes, uint32_t LAT * 6000000.0
+    * 4 bytes, uint32_t LONG * 6000000.0
+    * 2 bytes, uint16 RPM
+    * 2 bytes, int16 G Force X
+    * 2 bytes, int16 G Force Y
+    * 2 bytes, int16 G Force Z
+    * 4 bytes, int32 Altitude (in mm)
+    * 2 bytes, uint16 FL Wheel speed in km/h * 100
+    * 2 bytes, uint16 FR Wheel speed in km/h * 100
+    * 2 bytes, uint16 RL Wheel speed in km/h * 100
+    * 2 bytes, uint16 RR Wheel speed in km/h * 100
+    * 2 bytes, uint16 Fuel level in liters * 100
