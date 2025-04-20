@@ -291,9 +291,13 @@ void setup() {
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     Serial.printf("Joining Wi‑Fi '%s' ...\n", WIFI_SSID);
+    int count = 0;
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
+        if (count++ > 100)
+            ESP.restart();
+
     }
     wifiConnected = true;
     Serial.println("\nWi‑Fi connected!");
