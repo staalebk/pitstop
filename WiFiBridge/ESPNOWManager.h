@@ -4,6 +4,9 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include "protocol.h"
+extern "C" {
+    #include "esp_wifi.h"
+  }
 extern bool isWiFiConnected();
 uint8_t broadcastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -47,6 +50,7 @@ void setupESPNOW() {
 
   esp_now_register_send_cb(onESPSend);
   esp_now_register_recv_cb(onESPReceive);
+  esp_wifi_set_ps(WIFI_PS_NONE);
 
   esp_now_peer_info_t peerInfo = {};
   memcpy(peerInfo.peer_addr, broadcastAddr, 6);
@@ -58,6 +62,7 @@ void setupESPNOW() {
       Serial.println("[ESPNOW] Failed to add peer");
     }
   }
+
 }
 
 void sendChannelESPNOW() {
@@ -80,6 +85,8 @@ void espnowSendingThread(void* pvParams) {
     while (true) {
         if (isWiFiConnected()) {
             sendChannelESPNOW();
+        } else {
+            Serial.println("-");
         }
         Serial.println("");
         vTaskDelayUntil(&espWakeTime, pdMS_TO_TICKS(1000));

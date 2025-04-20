@@ -21,7 +21,7 @@ void simulateCarLoop(void* pvParams) {
 	while (true) {
 		if (xSemaphoreTake(packetMutex, portMAX_DELAY)) {
 			simulatedPacket.protocolVersion = 0x00;
-			simulatedPacket.timestamp = ((int64_t)micros() / 100000) * 100000;
+			simulatedPacket.timestamp = ((int64_t)micros() / 1000) * 1000;
 
 			// Simulate speed between 20–70 km/h
 			speedKmh = 45.0f + 15.0f * sin(simTime * 0.5f);

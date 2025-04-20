@@ -7,6 +7,8 @@
 
 const char* WIFI_SSID = "ez";
 const char* WIFI_PASS = "ez123456";
+WiFiUDP udpBroadcast;
+const uint16_t BROADCAST_PORT = 1337;   // same port your sender uses
 
 //const char* UDP_TARGET_IP = "84.211.23.46";
 const char* UDP_TARGET_IP = "172.232.157.107";
@@ -15,6 +17,7 @@ const int UDP_LOCAL_PORT = 4210;
 
 WiFiUDP udp;
 bool wifiConnected = false;
+int staChannel;
 unsigned long lastAttempt = 0;
 const unsigned long reconnectInterval = 1000;
 
@@ -35,6 +38,11 @@ void connectWiFi() {
 		Serial.println("\n[WiFi] Connected. IP: " + WiFi.localIP().toString());
 		udp.begin(UDP_LOCAL_PORT);
 		wifiConnected = true;
+		if (!udpBroadcast.begin(BROADCAST_PORT)) {
+			Serial.println("Failed to start BROADCAST UDP");
+		} else {
+		  Serial.printf("Listening for broadcast on port %u\n", BROADCAST_PORT);
+		}
 	} else {
 		Serial.println("\n[WiFi] Connection FAILED");
 		wifiConnected = false;
@@ -43,7 +51,7 @@ void connectWiFi() {
 
 
 void setupWiFi() {
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_AP_STA);
   connectWiFi();
 }
 
@@ -166,6 +174,45 @@ void sendStatusUDP() {
     */
 }
 
+void readBroadcast() {
+	int packetSize = udpBroadcast.parsePacket();
+	if (packetSize <= 0) {
+	  // no packet, nothing to do
+	  return;
+	}
+	// make sure it’s the size we expect
+	if (packetSize != sizeof(GPSData)) {
+		Serial.printf("Unexpected packet size (want %u)\n", sizeof(RaceboxDataMessage));
+		// you could still read and discard it:
+		uint8_t discardBuf[packetSize];
+		udpBroadcast.read(discardBuf, packetSize);
+		return;
+	}
+	GPSData gps;
+	int len = udpBroadcast.read(reinterpret_cast<uint8_t*>(&gps), sizeof(gps));
+	if (len != sizeof(gps)) {
+		Serial.printf("  → Read error: got %d bytes\n", len);
+		return;
+	}
+	if (gps.magic != 0x1337D00F) {
+		Serial.println("Invalid GPS UDP magic");
+		return;            
+	}
+	memcpy(&gpsData, &gps, sizeof(gpsData));
+	static uint8_t counter;
+	if(!counter++)
+		Serial.printf("fix: %d\n", gpsData.RDM.fixStatus);
+	Serial.print("G");
+}
+
+TickType_t broadcastudpWakeTime = xTaskGetTickCount();
+void broadcastudpreceivingThread(void* pvParams) {
+    while (true) {
+		readBroadcast();
+        vTaskDelayUntil(&broadcastudpWakeTime, pdMS_TO_TICKS(40));
+    }
+}
+
 TickType_t udpWakeTime = xTaskGetTickCount();
 void udpSendingThread(void* pvParams) {
     while (true) {
@@ -173,7 +220,7 @@ void udpSendingThread(void* pvParams) {
             sendStatusUDP();
             Serial.printf("U");
         }
-        vTaskDelayUntil(&udpWakeTime, pdMS_TO_TICKS(100));
+        vTaskDelayUntil(&udpWakeTime, pdMS_TO_TICKS(50));
     }
 }
 

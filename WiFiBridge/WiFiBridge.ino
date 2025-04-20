@@ -18,6 +18,7 @@ void setup() {
     xTaskCreatePinnedToCore(udpSendingThread, "UDPSendingThread", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(udpAuthSendingThread, "UDPAuthSendingThread", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(espnowSendingThread, "espnowSendingThread", 4096, NULL, 1, NULL, 1);
+    xTaskCreatePinnedToCore(broadcastudpreceivingThread, "BroadCastUDPSendingThread", 4096, NULL, 1, NULL, 1);
 }
 
 void loop() {
