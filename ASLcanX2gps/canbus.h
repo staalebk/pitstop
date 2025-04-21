@@ -124,15 +124,15 @@ void parseCAN(twai_message_t *message) {
         // **Coolant temperature** (Byte 1)
         latestVehicle.coolant_temp = (bytestouint(message->data, 1, 1) * 0.75) - 48;
     } 
-    else if (message->identifier == 790) { // 0x2C5
+    else if (message->identifier == can_dme1_id) { // 0x316 / 709 
         // **RPM Calculation** (Little-Endian, Bytes 2-3)
         latestVehicle.rpm = bytestouintle(message->data, 2, 2) * 0.15625;
     } 
-    else if (message->identifier == 1349) {
+    else if (message->identifier == can_dme4_id) { // 0x545 / 1349
         // **Oil temperature** (Byte 4)
         latestVehicle.oil_temp = bytestouint(message->data, 4, 1) - 48;
     }
-    else if (message->identifier == 0x153 && false) {
+    else if (message->identifier == can_asc1_id && false) { // 0x153 / 339
         uint8_t vss_low_5 = (message->data[1] >> 3) & 0x1F;
         uint16_t vss_high_8 = message->data[2];
         uint16_t vss_raw = (vss_high_8 << 5) | vss_low_5;
@@ -150,7 +150,7 @@ void parseCAN(twai_message_t *message) {
         counter++;
           
     }
-    else if (message->identifier == 0x613) {
+    else if (message->identifier == can_icl2_id) { // 0x613 / 1555
       static uint8_t counter = 0;
       if (!counter++)
         hexDump(message->data, message->data_length_code);
