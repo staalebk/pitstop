@@ -66,7 +66,7 @@ void simulateCarLoop(void* pvParams) {
         simTime += dt;
 
         // ── 2) GPS SIMULATION UNTIL FIX ────────────────────────────────────
-        if (!hasFix) {
+        if (!hasFix && false) {
             if (latestGPS.fixStatus == 3) {
                 hasFix = true;
             } else {
@@ -153,7 +153,7 @@ void simulateCarLoop(void* pvParams) {
         }
 
         // 3.5) quit if not needed
-        if (hasCAN && hasFix) {
+        if (true /* hasCAN && hasFix */) {
             Serial.printf("We have GPS fix and CAN-data. Fake data no longer needed.\n");
             vTaskDelete(NULL);
         }

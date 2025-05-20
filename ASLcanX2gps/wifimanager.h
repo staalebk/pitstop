@@ -68,10 +68,22 @@ void sendGPSUDP(RaceboxDataMessage *data) {
 }
 
 void sendCarDataUDP() {
+    static uint16_t error_cnt = 0;
+    static int32_t last_speed;
     pitstopudp.beginPacket(PITSTOP_TARGET_IP, PITSTOP_PORT);
     DataPacket datapacket = {};
     datapacket.timestamp = (int64_t)micros();
     // Update latestVehicle with data from Racebox
+    if (last_speed == latestGPS.speed) {
+        error_cnt++;
+    } else {
+        error_cnt = 0;
+    }
+    if (error_cnt > 6000) {
+        Serial.printf("Too many identical speeds, resetting\n");
+        ESP.restart();
+    }
+    last_speed = latestGPS.speed;
     latestVehicle.speed = (uint16_t) (latestGPS.speed * 0.36);
     latestVehicle.heading = (uint16_t) (latestGPS.heading / 10e2);
     latestVehicle.latitude = latestGPS.latitude*1.0/1e7 * 6000000.0f;

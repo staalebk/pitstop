@@ -150,7 +150,7 @@ void parseCAN(twai_message_t *message) {
         counter++;
           
     }
-    else if (message->identifier == can_icl2_id) { // 0x613 / 1555
+    else if (message->identifier == can_icl2_id) { // 0x613 / 1555 Not received?
       static uint8_t counter = 0;
       if (!counter++)
         hexDump(message->data, message->data_length_code);
@@ -158,7 +158,7 @@ void parseCAN(twai_message_t *message) {
       latestVehicle.fuel_level = message->data[2] << 8 | message->data[5];
       //carData.state.fuelr = message->data[2];
       //carData.state.fuell = message->data[5];
-    } else if (message->identifier == 0x1F0) {
+    } else if (message->identifier == can_asc2_id) { // 0x1F0 / 496
         uint16_t raw1 = ((message->data[1] & 0x1F) << 8) | message->data[0];
         uint16_t raw2 = ((message->data[3] & 0x1F) << 8) | message->data[2];
         uint16_t raw3 = ((message->data[5] & 0x1F) << 8) | message->data[4];
